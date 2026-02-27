@@ -1,0 +1,72 @@
+name: Flake8 with Auto-fix Attempt (Windows)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  flake8:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        pip install flake8 autopep8
+        
+    - name: Run flake8 and save output
+      continue-on-error: true
+      run: |
+        flake8  > errorsflake8.txt 2>&1
+      shell: pwsh
+
+    
+        
+    - name: Attempt to auto-fix errors (PowerShell)
+      if: always()
+      continue-on-error: true
+      run: |
+          if (-not (Test-Path errorsflake8.txt)) {
+          Write-Host "❌ errorsflake8.txt not found"
+          exit 1
+          }
+    
+          $fixedCount = 0
+          $skippedCount = 0
+    
+          Get-Content errorsflake8.txt | ForEach-Object {
+          if ($_ -match '^([^:]+):(\d+):\d+:\s+([A-Z]\d+)\s+') {
+          $filename = $matches[1]
+          $linenumber = $matches[2]
+          $code = $matches[3]
+        
+          # Пропускаем ошибки, которые autopep8 НЕ исправляет
+          $unfixable = @("F401", "F841", "W293", "W291", "E226", "E501", "E722", "E123", "F811")
+          if ($code -in $unfixable) {
+          $skippedCount++
+          return
+          }
+        
+          # ✅ Исправлено: подвыражение ${} для корректной интерполяции
+          Write-Host "🔧 Fixing ${filename}:${linenumber} [$code]..."
+        
+          autopep8 --in-place --line-range $linenumber $linenumber --select $code $filename 2>$null
+          $fixedCount++
+          }
+          }
+    
+      shell: pwsh
+      
+    - name: Show remaining errors
+      continue-on-error: true
+      run: |
+        Write-Host "=== Remaining errors ==="
+        flake8 . || exit 0
