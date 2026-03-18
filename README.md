@@ -28,3 +28,8 @@ source .venv/bin/activate       # Linux/macOS
 ```bash
 pip install uv
 ```
+
+5. Синхронизация зависимостей в активном окружении
+```bash
+uv sync --active
+```
