@@ -25,4 +25,5 @@ def findpeaks(sig:np.ndarray,fs:float,low:float=85,high:float=99)->list:
     print('Пульс')
     print(60*len(peaksR)/np.ptp(t))
     print()
+  
     return rpeaks
