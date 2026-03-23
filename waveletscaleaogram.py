@@ -18,7 +18,7 @@ def waveletscaleaogram(sig:np.ndarray,fs:float,waveletname:str='morl',fmin:float
     
     [coefficients, frequencies] = pywt.cwt(sig, scales, waveletname, sampling_period=dt)
     power=np.square(np.abs(coefficients))
-    print(power.shape)
+    # print(power.shape)
     Sp=np.sum(power,axis=1)
-    print(Sp.shape)
+    # print(Sp.shape)
     return Sp,frequencies,power

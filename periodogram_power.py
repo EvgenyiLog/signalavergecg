@@ -44,10 +44,11 @@ def periodogram_power(
         )
     
     # Интегральная мощность методом трапеций (без интерполяции!)
-    total_power = np.trapezoid(Pxx_band, freq_band)
+    band_power = np.trapezoid(Pxx_band, freq_band)
+    total_power=np.trapezoid(Pxx, freq)
     
     print(f"Band: [{fmin}, {fmax}] Hz | Bins: {len(freq_band)} | "
           f"Total power: {total_power:.4g}")
     
-    return total_power, freq, Pxx
+    return band_power/total_power, freq, Pxx
 
