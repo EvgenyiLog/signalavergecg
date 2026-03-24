@@ -36,6 +36,8 @@ def prepare_rf_data(
     y : pd.Series — целевая переменная (0=norm, 1=pat)
     feature_names : list — имена признаков
     """
+    if df_results.empty:
+        raise ValueError("df_results is empty!")
     # Находим парные метрики
     norm_cols = [c for c in df_results.columns if c.startswith('norm_')]
     pat_cols = [c for c in df_results.columns if c.startswith('pat_')]
