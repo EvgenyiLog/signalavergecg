@@ -18,6 +18,7 @@ warnings.filterwarnings('ignore')
 def prepare_rf_data(
     df_results: pd.DataFrame,
     use_differences: bool = False  # Если True — используем разницу pat - norm как признак
+
 ) -> tuple[pd.DataFrame, pd.Series, list]:
     """
     Подготавливает данные для Random Forest из DataFrame с парными метриками.
