@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.signal import iircomb, sosfiltfilt
+from scipy.signal import iircomb, filtfilt
 from typing import Union
 
 def iircombfilter(
@@ -63,16 +63,16 @@ def iircombfilter(
 
     # 2. Создание коэффициентов фильтра
     # ftype='bandstop' означает, что мы хотим УДАЛИТЬ эту частоту (режекторный фильтр).
-    # output='sos' возвращает фильтр в виде секций второго порядка, что численно стабильнее.
-    sos = iircomb(
+  
+    b,a = iircomb(
         w0, 
         Q=quality_factor, 
-        ftype='bandstop', 
-        output='sos'
+        ftype='notch', 
+       
     )
 
     # 3. Применение фильтра
     # sosfiltfilt применяет фильтр дважды (вперед и назад), что устраняет фазовые искажения.
-    filtered_signal = sosfiltfilt(sos, signal)
+    filtered_signal = filtfilt(b,a, signal)
 
     return filtered_signal
