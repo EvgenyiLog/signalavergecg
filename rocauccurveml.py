@@ -38,6 +38,12 @@ def prepare_rf_data(
     """
     if df_results.empty:
         raise ValueError("df_results is empty!")
+
+    for col in df_results.columns:
+        if col != 'rat_number':
+            if df_results[col].dtype == 'object':
+                df_results[col] = df_results[col].astype(str).str.replace(',', '.').astype(float)
+                
     # Находим парные метрики
     norm_cols = [c for c in df_results.columns if c.startswith('norm_')]
     pat_cols = [c for c in df_results.columns if c.startswith('pat_')]
