@@ -896,6 +896,11 @@ def main():
     excel_filename = os.path.join(save_dir_xlsx, "mannwhitney1.xlsx")
     df.to_excel(excel_filename, index=False)
 
+    #=== ПРОВЕРКА ПЕРЕД ОБУЧЕНИЕМ ===
+    print(f"df_results.dtypes:\n{df_results.dtypes}")
+    print(f"df_results.isna().sum().sum() = {df_results.isna().sum().sum()} NaN")
+    print(f"Первое значение norm_fQRS_ms: {df_results['norm_fQRS_ms'].iloc[0]} (type={type(df_results['norm_fQRS_ms'].iloc[0])})")
+
     X, y, feature_cols=prepare_rf_data(df_results)
     dictml=train_rf_and_plot_roc(X, y, feature_cols,save_path=os.path.join(save_dir_pic, f"rocauccurve1_{i}.jpeg"))
 

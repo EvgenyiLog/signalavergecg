@@ -14,6 +14,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+def 
+
+
 def prepare_rf_data(df_results: pd.DataFrame, use_differences: bool = False) -> tuple:
     if df_results.empty:
         raise ValueError("df_results is empty!")
