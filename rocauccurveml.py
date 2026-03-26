@@ -14,86 +14,66 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-
-
 def prepare_rf_data(df_results: pd.DataFrame, use_differences: bool = False) -> tuple:
     if df_results.empty:
         raise ValueError("df_results is empty!")
 
-    print(f"\n=== ОТЛАДКА prepare_rf_data ===")
-    print(f"1. Размер входных данных: {df_results.shape}")
-    print(f"2. Названия всех колонок: {list(df_results.columns)}")
+    df_results = df_results.copy()
+    df_results.columns = df_results.columns.str.strip()
     
-    # Конвертация
-    for col in df_results.columns:
-        if col != 'rat_number':
-            df_results[col] = df_results[col].astype(str).str.replace(',', '.').str.strip()
-            df_results[col] = pd.to_numeric(df_results[col], errors='coerce')
+    print(f"\n=== prepare_rf_data ===")
+    print(f"Входные данные: {df_results.shape}, NaN: {df_results.isna().sum().sum()}")
     
-    # Поиск колонок
+    # Поиск парных метрик
     norm_cols = [c for c in df_results.columns if c.startswith('norm_')]
     pat_cols = [c for c in df_results.columns if c.startswith('pat_')]
     
-    print(f"3. Найдено norm_ колонок: {len(norm_cols)} -> {norm_cols[:3]}...")
-    print(f"4. Найдено pat_ колонок: {len(pat_cols)} -> {pat_cols[:3]}...")
-    
-    # Извлечение имен метрик
     norm_metrics = [c.replace('norm_', '') for c in norm_cols]
     pat_metrics = [c.replace('pat_', '') for c in pat_cols]
     common_metrics = sorted(list(set(norm_metrics) & set(pat_metrics)))
     
-    print(f"5. Парных метрик (common_metrics): {len(common_metrics)}")
-    print(f"   Пример: {common_metrics[:5]}")
+    print(f"Парных метрик: {len(common_metrics)}")
     
-    if len(common_metrics) == 0:
-        print("❌ ОШИБКА: Нет совпадающих пар norm_/pat_! Проверьте префиксы колонок.")
-        return pd.DataFrame(), pd.Series(), []
-
-    # Формирование длинного формата
+    # === ИСПРАВЛЕНО: Одна строка = одно измерение (все метрики вместе) ===
     rows = []
     for idx, row in df_results.iterrows():
         rat_id = row.get('rat_number')
         
+        # Строка для НОРМЫ (все метрики в одной строке)
+        row_norm = {'rat_number': rat_id, 'metric_source': 'norm'}
         for metric in common_metrics:
-            col_norm = f'norm_{metric}'
-            col_pat = f'pat_{metric}'
-            
-            val_norm = row.get(col_norm)
-            val_pat = row.get(col_pat)
-            
-            if pd.notna(val_norm):
-                row_data = {'rat_number': rat_id, 'metric_source': 'norm'}
-                row_data[metric] = val_norm
-                rows.append(row_data)
-            
-            if pd.notna(val_pat):
-                row_data = {'rat_number': rat_id, 'metric_source': 'pat'}
-                row_data[metric] = val_pat
-                rows.append(row_data)
-    
-    print(f"6. Строк собрано в rows: {len(rows)}")
-    
-    if len(rows) == 0:
-        print("❌ ОШИБКА: Список rows пуст! Проверьте значения rat_number и notna().")
-        return pd.DataFrame(), pd.Series(), []
+            col_name = f'norm_{metric}'
+            row_norm[metric] = row.get(col_name)
+        rows.append(row_norm)
+        
+        # Строка для ПАТОЛОГИИ (все метрики в одной строке)
+        row_pat = {'rat_number': rat_id, 'metric_source': 'pat'}
+        for metric in common_metrics:
+            col_name = f'pat_{metric}'
+            row_pat[metric] = row.get(col_name)
+        rows.append(row_pat)
+    # =======================================================================
     
     df_long = pd.DataFrame(rows)
+    print(f"df_long shape: {df_long.shape}")
+    print(f"NaN в df_long: {df_long[common_metrics].isna().sum().sum()}")
+    
     df_long['target'] = (df_long['metric_source'] == 'pat').astype(int)
     
     feature_cols = common_metrics
     X = df_long[feature_cols].copy()
     y = df_long['target'].copy()
     
-    print(f"7. Размер X до фильтра: {X.shape}")
-    print(f"8. Есть ли NaN в X: {X.isna().sum().sum()}")
-    
+    # Фильтр NaN
     mask = X.notna().all(axis=1)
     X = X[mask].reset_index(drop=True)
     y = y[mask].reset_index(drop=True)
     
-    print(f"9. Размер X после фильтра: {X.shape}")
     print(f"Подготовлено примеров: {len(X)} (norm: {(y==0).sum()}, pat: {(y==1).sum()})")
-    print(f"=============================\n")
+    print(f"=========================\n")
+    
+    if len(X) == 0:
+        print("❌ Все данные отфильтрованы! Проверьте NaN в df_long выше.")
     
     return X, y, feature_cols
 
