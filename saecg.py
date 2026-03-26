@@ -201,7 +201,7 @@ def main():
 
     result=compare_signals_mannwhitney(saecgnorm,saecgpat)
     print(result)
-    # Инициализируем словарь с результатами для текущего файла
+    # # Инициализируем словарь с результатами для текущего файла
     file_result = {
     'rat_number': None,  # Явно сохраняем номер крысы
     # Параметры нормального сигнала
