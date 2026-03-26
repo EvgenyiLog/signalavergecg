@@ -13,7 +13,6 @@ from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
 
-
 def prepare_rf_data(df_results: pd.DataFrame, use_differences: bool = False) -> tuple:
     if df_results.empty:
         raise ValueError("df_results is empty!")
@@ -77,12 +76,11 @@ def prepare_rf_data(df_results: pd.DataFrame, use_differences: bool = False) -> 
     
     return X, y, feature_cols
 
-
 def train_rf_and_plot_roc(
     X: pd.DataFrame,
     y: pd.Series,
     feature_names: list,
-    n_splits: int = 5,
+    n_splits: int = 2,
     n_estimators: int = 100,
     random_state: int = 42,
     plot_feature_importance: bool = True,
@@ -102,7 +100,7 @@ def train_rf_and_plot_roc(
     rf = RandomForestClassifier(
         n_estimators=n_estimators,
         max_depth=10,
-        min_samples_split=5,
+        min_samples_split=2,
         min_samples_leaf=2,
         class_weight='balanced',  # Важно при дисбалансе классов
         random_state=random_state,
