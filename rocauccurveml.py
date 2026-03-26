@@ -14,122 +14,86 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-
-def prepare_rf_data(
-    df_results: pd.DataFrame,
-    use_differences: bool = False  # Если True — используем разницу pat - norm как признак
-) -> tuple[pd.DataFrame, pd.Series, list]:
-    """
-    Подготавливает данные для Random Forest из DataFrame с парными метриками.
-    
-    Параметры:
-    ----------
-    df_results : pd.DataFrame
-        Исходный DataFrame (строка = крыса, колонки = norm_*/pat_*).
-    use_differences : bool
-        Если True — создаем признаки как разницу (pat - norm) для каждой крысы.
-        Если False — преобразуем в длинный формат (каждое измерение — отдельная строка).
-    
-    Возвращает:
-    -----------
-    X : pd.DataFrame — матрица признаков
-    y : pd.Series — целевая переменная (0=norm, 1=pat)
-    feature_names : list — имена признаков
-    """
+def prepare_rf_data(df_results: pd.DataFrame, use_differences: bool = False) -> tuple:
     if df_results.empty:
         raise ValueError("df_results is empty!")
 
+    print(f"\n=== ОТЛАДКА prepare_rf_data ===")
+    print(f"1. Размер входных данных: {df_results.shape}")
+    print(f"2. Названия всех колонок: {list(df_results.columns)}")
+    
+    # Конвертация
     for col in df_results.columns:
         if col != 'rat_number':
-            if df_results[col].dtype == 'object':
-                df_results[col] = df_results[col].astype(str).str.replace(',', '.').astype(float)
-                
-    # Находим парные метрики
+            df_results[col] = df_results[col].astype(str).str.replace(',', '.').str.strip()
+            df_results[col] = pd.to_numeric(df_results[col], errors='coerce')
+    
+    # Поиск колонок
     norm_cols = [c for c in df_results.columns if c.startswith('norm_')]
     pat_cols = [c for c in df_results.columns if c.startswith('pat_')]
     
+    print(f"3. Найдено norm_ колонок: {len(norm_cols)} -> {norm_cols[:3]}...")
+    print(f"4. Найдено pat_ колонок: {len(pat_cols)} -> {pat_cols[:3]}...")
+    
+    # Извлечение имен метрик
     norm_metrics = [c.replace('norm_', '') for c in norm_cols]
     pat_metrics = [c.replace('pat_', '') for c in pat_cols]
     common_metrics = sorted(list(set(norm_metrics) & set(pat_metrics)))
     
-    print(f"Найдено парных метрик: {len(common_metrics)}")
+    print(f"5. Парных метрик (common_metrics): {len(common_metrics)}")
+    print(f"   Пример: {common_metrics[:5]}")
     
-    if use_differences:
-        # Вариант 1: Разница между pat и norm как признак (одна строка на крысу)
-        # Подходит если вы хотите классифицировать крыс по степени изменений
-        rows = []
-        for _, row in df_results.iterrows():
-            rat_features = {}
-            rat_features['rat_number'] = row.get('rat_number')
+    if len(common_metrics) == 0:
+        print("❌ ОШИБКА: Нет совпадающих пар norm_/pat_! Проверьте префиксы колонок.")
+        return pd.DataFrame(), pd.Series(), []
+
+    # Формирование длинного формата
+    rows = []
+    for idx, row in df_results.iterrows():
+        rat_id = row.get('rat_number')
+        
+        for metric in common_metrics:
+            col_norm = f'norm_{metric}'
+            col_pat = f'pat_{metric}'
             
-            for metric in common_metrics:
-                val_norm = row.get(f'norm_{metric}')
-                val_pat = row.get(f'pat_{metric}')
-                
-                if pd.notna(val_norm) and pd.notna(val_pat):
-                    # Разница как признак
-                    rat_features[f'{metric}_diff'] = val_pat - val_norm
-                    # Можно добавить и абсолютные значения
-                    rat_features[f'{metric}_norm'] = val_norm
-                    rat_features[f'{metric}_pat'] = val_pat
+            val_norm = row.get(col_norm)
+            val_pat = row.get(col_pat)
             
-            if len([k for k in rat_features.keys() if k not in ['rat_number']]) > 0:
-                # Целевая переменная: 1 = есть патология (для этой крысы)
-                rows.append(rat_features)
-        
-        df_features = pd.DataFrame(rows)
-        if df_features.empty:
-            raise ValueError("Нет данных для обучения после фильтрации")
+            if pd.notna(val_norm):
+                row_data = {'rat_number': rat_id, 'metric_source': 'norm'}
+                row_data[metric] = val_norm
+                rows.append(row_data)
             
-        # В этом режиме мы классифицируем не отдельные измерения, а крыс
-        # Поэтому y = 1 для всех (все крысы имеют патологию в эксперименте)
-        # Это не подходит для бинарной классификации norm/pat!
-        # Поэтому лучше использовать Вариант 2 (ниже)
-        print("⚠️ Режим use_differences не подходит для norm/pat классификации!")
-        print("   Используйте use_differences=False для long-format данных")
-        return None, None, None
-        
-    else:
-        # Вариант 2: Длинный формат (каждое измерение — отдельный пример)
-        # Это правильный подход для классификации norm vs pat
-        rows = []
-        for _, row in df_results.iterrows():
-            rat_id = row.get('rat_number')
-            
-            for metric in common_metrics:
-                val_norm = row.get(f'norm_{metric}')
-                val_pat = row.get(f'pat_{metric}')
-                
-                # Норма (класс 0)
-                if pd.notna(val_norm):
-                    row_data = {'rat_number': rat_id, 'metric_source': 'norm'}
-                    row_data[metric] = val_norm
-                    rows.append(row_data)
-                
-                # Патология (класс 1)
-                if pd.notna(val_pat):
-                    row_data = {'rat_number': rat_id, 'metric_source': 'pat'}
-                    row_data[metric] = val_pat
-                    rows.append(row_data)
-        
-        df_long = pd.DataFrame(rows)
-        
-        # Создаем целевую переменную
-        df_long['target'] = (df_long['metric_source'] == 'pat').astype(int)
-        
-        # Признаки — это сами метрики
-        feature_cols = common_metrics
-        X = df_long[feature_cols].copy()
-        y = df_long['target'].copy()
-        
-        # Удаляем строки с пропусками в признаках
-        mask = X.notna().all(axis=1)
-        X = X[mask].reset_index(drop=True)
-        y = y[mask].reset_index(drop=True)
-        
-        print(f"Подготовлено примеров: {len(X)} (norm: {(y==0).sum()}, pat: {(y==1).sum()})")
-        
-        return X, y, feature_cols
+            if pd.notna(val_pat):
+                row_data = {'rat_number': rat_id, 'metric_source': 'pat'}
+                row_data[metric] = val_pat
+                rows.append(row_data)
+    
+    print(f"6. Строк собрано в rows: {len(rows)}")
+    
+    if len(rows) == 0:
+        print("❌ ОШИБКА: Список rows пуст! Проверьте значения rat_number и notna().")
+        return pd.DataFrame(), pd.Series(), []
+    
+    df_long = pd.DataFrame(rows)
+    df_long['target'] = (df_long['metric_source'] == 'pat').astype(int)
+    
+    feature_cols = common_metrics
+    X = df_long[feature_cols].copy()
+    y = df_long['target'].copy()
+    
+    print(f"7. Размер X до фильтра: {X.shape}")
+    print(f"8. Есть ли NaN в X: {X.isna().sum().sum()}")
+    
+    mask = X.notna().all(axis=1)
+    X = X[mask].reset_index(drop=True)
+    y = y[mask].reset_index(drop=True)
+    
+    print(f"9. Размер X после фильтра: {X.shape}")
+    print(f"Подготовлено примеров: {len(X)} (norm: {(y==0).sum()}, pat: {(y==1).sum()})")
+    print(f"=============================\n")
+    
+    return X, y, feature_cols
 
 
 def train_rf_and_plot_roc(
