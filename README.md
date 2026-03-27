@@ -15,18 +15,18 @@ git clone https://github.com//signalavergecg
 cd signalavergecg
 ```
 
-3. Создайте виртуальное окружение и активируйте его:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate       # Linux/macOS
-.venv\Scripts\activate          # Windows
-```
-
-4. Установите uv:
+3. Установите uv:
 
 ```bash
 pip install uv
+```
+
+4. Создайте виртуальное окружение и активируйте его:
+
+```bash
+uv venv .venv
+source .venv/bin/activate       # Linux/macOS
+.venv\Scripts\activate          # Windows
 ```
 
 5. Синхронизация зависимостей в активном окружении
