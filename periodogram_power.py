@@ -1,10 +1,5 @@
 import numpy as np
 from scipy import signal
-from typing import Tuple, Optional
-
-
-import numpy as np
-from scipy import signal
 from typing import Tuple
 
 
