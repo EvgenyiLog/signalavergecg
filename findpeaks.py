@@ -7,6 +7,7 @@ def findpeaks(sig:np.ndarray,fs:float,low:float=85,high:float=99)->list:
     fcut=45/fn
     b,a=signal.butter(1,fcut)
     y=signal.filtfilt(b,a,sig)
+    # y[y<=0]=0
     hs=signal.hilbert(y)
     power=np.real(hs*hs.conj())
     t=np.linspace(0,len(sig)/fs,len(sig))
