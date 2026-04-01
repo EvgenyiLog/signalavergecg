@@ -8,10 +8,11 @@ def findpeaks(sig:np.ndarray,fs:float,low:float=85,high:float=99)->list:
     b,a=signal.butter(1,fcut)
     y=signal.filtfilt(b,a,sig)
     # y[y<=0]=0
+    power=np.clip(power, a_min=None,a_max=np.percentile(power,high))
     hs=signal.hilbert(y)
     power=np.real(hs*hs.conj())
     t=np.linspace(0,len(sig)/fs,len(sig))
-    rpeaks, _ = signal.find_peaks(power,distance=150,height=(np.percentile(power,low),np.percentile(power,high)))
+    rpeaks, _ = signal.find_peaks(power,distance=150,height=(np.percentile(power,low),np.amax(power)))
     print('Средняя длительность,с')
     peaksR=np.asarray(rpeaks/fs,dtype=float)
     print(np.mean(np.diff(peaksR)))
