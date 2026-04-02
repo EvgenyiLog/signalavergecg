@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from compare_signals_mannwhitney import compare_signals_mannwhitney
+from scipy.stats import mannwhitneyu
 def apply_mannwhitney_to_all(
     df_results: pd.DataFrame,
     alternative: str = 'two-sided',
@@ -39,56 +39,49 @@ def apply_mannwhitney_to_all(
     
     print(f"Найдено метрик для сравнения: {len(common_metrics)}")
     
-    # 2. Словарь для сбора результатов
-    all_results = []
+    results = []
     
-    # 3. Итерируемся по каждой крысе
-    for idx, row in df_results.iterrows():
-        rat_id = row.get('rat_number', idx)
-        rat_results = {'rat_number': rat_id}
+    for metric in common_metrics:
+        norm_col = f'norm_{metric}'
+        pat_col = f'pat_{metric}'
         
-        for metric in common_metrics:
-            norm_col = f'norm_{metric}'
-            pat_col = f'pat_{metric}'
-            
-            val_norm = row.get(norm_col)
-            val_pat = row.get(pat_col)
-            
-            # Проверка на наличие данных
-            if pd.isna(val_norm) or pd.isna(val_pat):
-                rat_results[f'{metric}_pvalue'] = None
-                rat_results[f'{metric}_significant'] = None
-                continue
-            
-            # Для Манна-Уитни нужны массивы. 
-            # Если у вас в ячейке одно число, оборачиваем в массив.
-            # Если там уже массив/список — оставляем как есть.
-            arr_norm = np.array([val_norm]) if np.isscalar(val_norm) else np.array(val_norm)
-            arr_pat = np.array([val_pat]) if np.isscalar(val_pat) else np.array(val_pat)
-            
-            # Запуск теста
-            test_res = compare_signals_mannwhitney(
-                arr_norm, 
-                arr_pat, 
-                alternative=alternative,
-                lpvalue=lpvalue
-            )
-            
-            # Сохраняем ключевые результаты
-            rat_results[f'{metric}_pvalue'] = test_res.get('pvalue')
-            rat_results[f'{metric}_significant'] = test_res.get('significant')
-            rat_results[f'{metric}_statistic'] = test_res.get('statistic')
-            
-            # Опционально: сохраняем разность средних для понимания направления
-            if test_res.get('mean_norm') is not None:
-                rat_results[f'{metric}_diff'] = test_res.get('mean_pat') - test_res.get('mean_norm')
+        # Собираем все значения по всем крысам, отбрасывая NA
+        norm_vals = df_results[norm_col].dropna().values
+        pat_vals = df_results[pat_col].dropna().values
         
-        all_results.append(rat_results)
+        # Проверяем, достаточно ли данных (хотя бы 2 в каждой группе)
+        if len(norm_vals) < 2 or len(pat_vals) < 2:
+            print(f"Предупреждение: для метрики {metric} недостаточно данных "
+                  f"(norm={len(norm_vals)}, pat={len(pat_vals)}). Пропускаем.")
+            continue
+
+    # Выполняем тест Манна-Уитни
+        try:
+            u_stat, p_value = mannwhitneyu(norm_vals, pat_vals, alternative=alternative)
+        except Exception as e:
+            print(f"Ошибка для метрики {metric}: {e}")
+            continue
+        
+        # Вычисляем разность (патология - норма) для интерпретации
+        median_diff = np.median(pat_vals) - np.median(norm_vals)
+        mean_diff = np.mean(pat_vals) - np.mean(norm_vals)
+        
+        results.append({
+            'metric': metric,
+            'n_norm': len(norm_vals),
+            'n_pat': len(pat_vals),
+            'median_norm': np.median(norm_vals),
+            'median_pat': np.median(pat_vals),
+            'median_diff': median_diff,
+            'mean_norm': np.mean(norm_vals),
+            'mean_pat': np.mean(pat_vals),
+            'mean_diff': mean_diff,
+            'statistic': u_stat,
+            'pvalue': p_value,
+            'significant': p_value < lpvalue
+        })
     
-    # 4. Создаем итоговый DataFrame
-    df_stats = pd.DataFrame(all_results)
+    # Создаём DataFrame с результатами
+    df_stats = pd.DataFrame(results)
     
-    # Сортируем колонки: сначала rat_number, потом по алфавиту
-    cols = ['rat_number'] + sorted([c for c in df_stats.columns if c != 'rat_number'])
-    
-    return df_stats[cols]
+    return df_stats
