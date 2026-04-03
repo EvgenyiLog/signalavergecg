@@ -59,7 +59,7 @@ def calculate_entropies(
     # 3. Permutation-энтропия
     permutation_entropy = ent.permutation_entropy(data, perm_order, perm_delay)
     
-    return shannon_entropy, sample_entropy, permutation_entropy
+    return shannon_entropy, np.mean(sample_entropy), permutation_entropy
 
 
 
