@@ -1861,6 +1861,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pyentrp"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fd/7a/39cd3bc56b63bfd903a95f67c118ebba43cb2cc35d24a730a54fd8384393/pyentrp-2.1.0.tar.gz", hash = "sha256:e2414843ec17ee6addab0d998b169a4f806579da05ef8ed29918e02b3c669330", size = 10344, upload-time = "2025-11-26T21:00:07.943Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/9c/dc42235881bc87abe048e6d734591054a869b01b5325f4c5a9a2c98cdc88/pyentrp-2.1.0-py3-none-any.whl", hash = "sha256:fcfc738e2fa6dca2f92f076ef8d18556c825bc1abf24a1e1f545c83ed3df6fe3", size = 10873, upload-time = "2025-11-26T21:00:07.147Z" },
+]
+
+[[package]]
 name = "pyflakes"
 version = "3.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2459,7 +2471,7 @@ wheels = [
 
 [[package]]
 name = "signalavergecg"
-version = "0.0.2"
+version = "0.0.4"
 source = { virtual = "." }
 dependencies = [
     { name = "biosppy" },
@@ -2470,6 +2482,7 @@ dependencies = [
     { name = "openpyxl" },
     { name = "pandas" },
     { name = "peakutils" },
+    { name = "pyentrp" },
     { name = "pywavelets" },
     { name = "scikit-learn" },
     { name = "scipy" },
@@ -2500,6 +2513,7 @@ requires-dist = [
     { name = "openpyxl", specifier = ">=3.1.5" },
     { name = "pandas", specifier = ">=3.0.1" },
     { name = "peakutils", specifier = ">=1.3.5" },
+    { name = "pyentrp", specifier = ">=2.1.0" },
     { name = "pywavelets", specifier = ">=1.9.0" },
     { name = "scikit-learn", specifier = ">=1.8.0" },
     { name = "scipy", specifier = ">=1.17.1" },

@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
+# %%
 from  time_slice import time_slice
 from read_edf import read_edf
 from findpeaks import findpeaks
@@ -33,6 +28,9 @@ from iircombfilter import iircombfilter
 import pandas as pd
 import pprint
 def main():
+    plt.rcParams['axes.labelsize'] = 14  # Подписи осей
+    plt.rcParams['font.size'] = 12       # Базовый шрифт
+    plt.rc('font', weight='bold')
     save_dir_pic = "result/picture"
     os.makedirs(save_dir_pic, exist_ok=True)
     save_dir_txt = "result/txt"
@@ -42,13 +40,12 @@ def main():
     chanel_d,time,fs1,anot=read_edf("12_2_Not_filtered.edf","D:/ECG_IAI_RAS/RAT_NEW/12/2_rat/",[0, 1, 2, 3, 4, 5])
     sig1=chanel_d.get('II_LF           ')
     lf_sig,hf_sig,sig1,fs1,anot=signaladd("12_2_Not_filtered.edf","D:/ECG_IAI_RAS/RAT_NEW/12/2_rat/")
-    sig1=iqr_winsorize(sig1,5)
-    sig1=iircombfilter(sig1,fs1)
-
+    
+   
     print('Длительность,с')
     print(len(sig1)/fs1)
     print(anot)
-
+    
     if not anot:
         stabilization_time=0
         ishemia_time=1688
@@ -57,7 +54,82 @@ def main():
         stabilization_time=0
         ishemia_time=next((k for k, v in anot.items() if v == 'Ishemia'), 0)
         reperfusion_time=next((k for k, v in anot.items() if v == 'Reperfusion'), 0)
+    
+    ynorm=time_slice(
+        sig1 - np.mean(sig1),
+        stabilization_time+5,
+        stabilization_time+10,
+        fs1
+    )
+    plt.figure(figsize=(15,7))
+    plt.plot(np.linspace(0,len(ynorm)/fs1,len(ynorm)),ynorm)
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir_pic, "ecg_signal_norm_no_filt.jpeg"), dpi=300)
 
+    ypat=time_slice(
+        sig1 - np.mean(sig1),
+        ishemia_time,
+        ishemia_time+2,
+        fs1
+    )
+
+    plt.figure(figsize=(15,7))
+    plt.plot(np.linspace(0,len(ypat)/fs1,len(ypat)),ypat,'k')
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir_pic, "ecg_signal_pat_no_filt.jpeg"), dpi=300)
+    
+    sig1=iqr_winsorize(sig1,5)
+    sig1=iircombfilter(sig1,fs1)
+
+    ynorm=time_slice(
+        sig1 - np.mean(sig1),
+        stabilization_time+5,
+        stabilization_time+7,
+        fs1
+    )
+    plt.figure(figsize=(15,7))
+    plt.plot(np.linspace(0,len(ynorm)/fs1,len(ynorm)),ynorm,'k')
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir_pic, "ecg_signal_norm_filt.jpeg"), dpi=300)
+
+    rpeaks=findpeaks(ynorm,fs1)
+    plt.figure(figsize=(15,7))
+    plt.plot(np.linspace(0,len(ynorm)/fs1,len(ynorm))[rpeaks],ynorm[rpeaks],'ro')
+    plt.plot(np.linspace(0,len(ynorm)/fs1,len(ynorm)),ynorm)
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir_pic, "ecg_signal_norm_peaks.jpeg"), dpi=300)
+
+    ypat=time_slice(
+        sig1 - np.mean(sig1),
+        ishemia_time,
+        ishemia_time+5,
+        fs1
+    )
+
+    plt.figure(figsize=(15,7))
+    plt.plot(np.linspace(0,len(ypat)/fs1,len(ypat)),ypat,'k')
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir_pic, "ecg_signal_pat_filt.jpeg"), dpi=300)
+
+    rpeaks=findpeaks(ypat,fs1)
+    plt.figure(figsize=(15,7))
+    plt.plot(np.linspace(0,len(ypat)/fs1,len(ypat))[rpeaks],ypat[rpeaks],'ro')
+    plt.plot(np.linspace(0,len(ypat)/fs1,len(ypat)),ypat)
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
+    plt.grid(True)
+    plt.savefig(os.path.join(save_dir_pic, "ecg_signal_pat_peaks.jpeg"), dpi=300)
+    
     ynorm=time_slice(
         sig1 - np.mean(sig1),
         stabilization_time+5,
@@ -72,16 +144,22 @@ def main():
         fs1
     )
 
+    
+    
     plt.figure(figsize=(15,7))
     plt.plot(np.linspace(0,len(ynorm)/fs1,len(ynorm)),ynorm)
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
     plt.grid(True)
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_norm.jpeg"), dpi=300)
 
     plt.figure(figsize=(15,7))
     plt.plot(np.linspace(0,len(ypat)/fs1,len(ypat)),ypat)
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
     plt.grid(True)
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_pat.jpeg"), dpi=300)
-    rpeaks=findpeaks(ynorm,fs1)
+    
     saecgnorm=signalavergedecg(ynorm,fs1,rpeaks)
     rpeaksnorm,qpeaksnorm,speaksnorm,qrsonnorm,qrsoffnorm=peaksfind(saecgnorm,fs1)
     plt.figure(figsize=(15,7))
@@ -91,17 +169,21 @@ def main():
     plt.plot(np.linspace(0,len(saecgnorm)/fs1,len(saecgnorm))[qpeaksnorm],saecgnorm[qpeaksnorm],'mo')
     plt.plot(np.linspace(0,len(saecgnorm)/fs1,len(saecgnorm))[qrsonnorm],saecgnorm[qrsonnorm],'k*')
     plt.plot(np.linspace(0,len(saecgnorm)/fs1,len(saecgnorm))[qrsoffnorm],saecgnorm[qrsoffnorm],'g*')
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
     plt.grid(True)
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_averged_norm_peaks.jpeg"), dpi=300)
-
+    
     plt.figure(figsize=(15,7))
     plt.plot(np.linspace(0,len(saecgnorm)/fs1,len(saecgnorm)),saecgnorm)
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
     plt.grid(True)
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_averged_norm.jpeg"), dpi=300)
     parnorm=compute_late_potentials_from_avg(saecgnorm,fs1)
 
 
-    bin_edgesnorm, bin_heightsnorm=plot_histogram(saecgnorm, save_path=os.path.join(save_dir_pic, "ecg_signal_averged_hist_norm.jpeg"))
+    bin_edgesnorm, bin_heightsnorm=plot_histogram(saecgnorm,xlabel='Напряжение,мВ',ylabel='Плотность', save_path=os.path.join(save_dir_pic, "ecg_signal_averged_hist_norm.jpeg"))
     statsmomentsnorm=calculate_skew_kurtosis(saecgnorm)
 
 
@@ -109,14 +191,16 @@ def main():
     bin_centersnorm, bin_powersnorm=plot_fixed_bin_histogram(freq_norm, Pxx_norm,save_path=os.path.join(save_dir_pic, "ecg_signal_averged_hist_psd_norm.jpeg"))
     plt.figure(figsize=(15,7))
     plt.plot(freq_norm, Pxx_norm)
+    plt.xlabel('Частота,Гц')
+    plt.ylabel('СПМ,мВ**2/Гц')
     plt.grid(True)
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_averged_psd_norm.jpeg"), dpi=300)
-
+   
 
     Spnorm,frequenciesnorm,powernorm=waveletscaleaogram(saecgnorm,fs1)
     rationorm=calculate_band_power_ratio(powernorm,frequenciesnorm,300,2000)
     print(f'Доля суммарной мощности в диапазоне 300-2000 Гц при норме ={rationorm}')
-
+   
     plt.figure(figsize=(15,7))
     plt.subplot(121)
     time_axis = np.arange(powernorm.shape[1]) / fs1  
@@ -127,19 +211,19 @@ def main():
            vmax=abs(powernorm).max(), 
            vmin=-abs(powernorm).max())  
     plt.colorbar(label='Мощность')
-    plt.xlabel('Время (с)')
-    plt.ylabel('Частота (Гц)')
+    plt.xlabel('Время ,с')
+    plt.ylabel('Частота ,Гц')
     plt.title('Вейвлет-спектрограмма')
     plt.subplot(122)
     plt.semilogy(frequenciesnorm, Spnorm)
-    plt.xlabel('Частота (Гц)')
-    plt.ylabel('Суммарная мощность')
+    plt.xlabel('Частота ,Гц')
+    plt.ylabel('Суммарная мощность,мВ**2')
     plt.title('Интегральная мощность по частотам')
     plt.grid(True)
-
+    
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_averged_norm_wavelet.jpeg"), dpi=300)
-
-
+        
+  
     rpeaks=findpeaks(ypat,fs1)
     saecgpat=signalavergedecg(ypat,fs1,rpeaks)
     rpeakspat,qpeakspat,speakspat,qrsonpat,qrsoffpat=peaksfind(saecgpat,fs1)
@@ -150,30 +234,36 @@ def main():
     plt.plot(np.linspace(0,len(saecgpat)/fs1,len(saecgpat))[qpeakspat],saecgpat[qpeakspat],'mo')
     plt.plot(np.linspace(0,len(saecgpat)/fs1,len(saecgpat))[qrsonpat],saecgpat[qrsonpat],'k*')
     plt.plot(np.linspace(0,len(saecgpat)/fs1,len(saecgpat))[qrsoffpat],saecgpat[qrsoffpat],'g*')
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
     plt.grid(True)
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_averged_pat_peaks.jpeg"), dpi=300)
-
+   
     plt.figure(figsize=(15,7))
     plt.plot(np.linspace(0,len(saecgpat)/fs1,len(saecgpat)),saecgpat)
+    plt.xlabel('Время,с')
+    plt.ylabel('Напряжение,мВ')
     plt.grid(True)
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_averged_pat.jpeg"), dpi=300)
 
-    bin_edgespat, bin_heightspat=plot_histogram(saecgpat, save_path=os.path.join(save_dir_pic, "ecg_signal_averged_hist_pat.jpeg"))
+    bin_edgespat, bin_heightspat=plot_histogram(saecgpat,xlabel='Напряжение,мВ',ylabel='Плотность',save_path=os.path.join(save_dir_pic, "ecg_signal_averged_hist_pat.jpeg"))
     statsmomentspat=calculate_skew_kurtosis(saecgpat)
-
+   
 
     total_power_pat,freq_pat, Pxx_pat=periodogram_power(saecgpat,fs1)
     bin_centerspat, bin_powerspat=plot_fixed_bin_histogram(freq_pat, Pxx_pat,save_path=os.path.join(save_dir_pic, "ecg_signal_averged_hist_psd_pat.jpeg"))
     plt.figure(figsize=(15,7))
     plt.plot(freq_pat, Pxx_pat)
+    plt.xlabel('Частота,Гц')
+    plt.ylabel('СПМ,мВ**2/Гц')
     plt.grid(True)
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_averged_psd_pat.jpeg"), dpi=300)
-
+    
 
     Sppat,frequenciespat,powerpat=waveletscaleaogram(saecgpat,fs1)
     ratiopat=calculate_band_power_ratio(powerpat,frequenciespat,300,2000)
     print(f'Доля суммарной мощности в диапазоне 300-2000 Гц при патологии ={ratiopat}')
-
+   
     plt.figure(figsize=(15,7))
     plt.subplot(121)
     time_axis = np.arange(powerpat.shape[1]) / fs1  
@@ -184,16 +274,16 @@ def main():
            vmax=abs(powerpat).max(), 
            vmin=-abs(powerpat).max())  
     plt.colorbar(label='Мощность')
-    plt.xlabel('Время (с)')
-    plt.ylabel('Частота (Гц)')
+    plt.xlabel('Время ,с')
+    plt.ylabel('Частота ,Гц')
     plt.title('Вейвлет-спектрограмма')
     plt.subplot(122)
     plt.semilogy(frequenciespat, Sppat)
-    plt.xlabel('Частота (Гц)')
-    plt.ylabel('Суммарная мощность')
+    plt.xlabel('Частота ,Гц')
+    plt.ylabel('Суммарная мощность,мВ**2')
     plt.title('Интегральная мощность по частотам')
     plt.grid(True)
-
+    
     plt.savefig(os.path.join(save_dir_pic, "ecg_signal_averged_pat_wavelet.jpeg"), dpi=300)
 
     parpat=compute_late_potentials_from_avg(saecgpat,fs1)
@@ -201,7 +291,7 @@ def main():
 
     result=compare_signals_mannwhitney(saecgnorm,saecgpat)
     print(result)
-    # # Инициализируем словарь с результатами для текущего файла
+    # Инициализируем словарь с результатами для текущего файла
     file_result = {
     'rat_number': None,  # Явно сохраняем номер крысы
     # Параметры нормального сигнала
@@ -251,7 +341,7 @@ def main():
         print(f"\n{'='*50}")
         print(f"Обработка файла {i}")
         print('='*50)
-
+    
         # Формируем пути к файлам
         file_name = f"{i}_2_Not_filtered.edf"
         file_path = f"{base_path}{i}/2_rat/"
@@ -260,7 +350,7 @@ def main():
             file_path, 
             [0, 1, 2, 3, 4, 5]
         )
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Обработка сигнала..."
@@ -270,12 +360,12 @@ def main():
             file_name, 
             file_path
         )
-
+        
         # Применяем винзоризацию
         sig1 = iqr_winsorize(sig1, 5)
         sig1=iircombfilter(sig1,fs1)
-
-
+        
+        
         # Определяем временные метки
         if not anot:
             stabilization_time = 0
@@ -285,7 +375,7 @@ def main():
             stabilization_time = 0
             ishemia_time = next((k for k, v in anot.items() if v == 'Ishemia'), 0)
             reperfusion_time = next((k for k, v in anot.items() if v == 'Reperfusion'), 0)
-
+        
         # Вырезаем участки сигнала
         ynorm = time_slice(
             sig1 - np.mean(sig1),
@@ -293,14 +383,14 @@ def main():
             stabilization_time + 34,
             fs1
         )
-
+        
         ypat = time_slice(
             sig1 - np.mean(sig1),
             ishemia_time,
             ishemia_time + 34,
             fs1
         )
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Графики сигналов..."
@@ -308,27 +398,31 @@ def main():
         # Сохраняем графики исходных сигналов
         plt.figure(figsize=(15,7))
         plt.plot(np.linspace(0, len(ynorm)/fs1, len(ynorm)), ynorm)
+        plt.xlabel('Время,с')
+        plt.ylabel('Напряжение,мВ')
         plt.grid(True)
         plt.title(f'Нормальный сигнал - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_norm_2_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         plt.figure(figsize=(15,7))
         plt.plot(np.linspace(0, len(ypat)/fs1, len(ypat)), ypat)
+        plt.xlabel('Время,с')
+        plt.ylabel('Напряжение,мВ')
         plt.grid(True)
         plt.title(f'Патологический сигнал - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_pat_2_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Усреднение сигналов..."
         )
-
+        
         # Обработка нормального сигнала
         rpeaks= findpeaks(ynorm, fs1)
         saecgnorm = signalavergedecg(ynorm, fs1, rpeaks)
-
+        
         plt.figure(figsize=(15,7))
         plt.plot(np.linspace(0, len(saecgnorm)/fs1, len(saecgnorm)), saecgnorm)
         plt.grid(True)
@@ -341,7 +435,7 @@ def main():
             with open(os.path.join(save_dir_txt, f"results_2_{i}_norm.txt"), 'w') as f:
                 f.write(f"Результаты обработки файла {i}\n")
                 f.write("="*50 + "\n")
-
+          
                 f.write(f"Нормальный сигнал:\n{parnorm}\n\n")
                 f.close()
             # Сохраняем параметры в словарь
@@ -370,7 +464,7 @@ def main():
             file_result['norm_kurtosis'] = statsmomentsnorm.get("kurtosis", None)
             file_result['norm_std'] = statsmomentsnorm.get("std", None)
             file_result['norm_mean'] = statsmomentsnorm.get("mean", None)
-
+        
 
         pbar.set_postfix(
             file=file_name,
@@ -380,6 +474,8 @@ def main():
         file_result['norm_ratio_psd_power'] = total_power_norm
         plt.figure(figsize=(15,7))
         plt.plot(freq_norm, Pxx_norm)
+        plt.xlabel('Частота,Гц')
+        plt.ylabel('СПМ,мВ**2/Гц')
         plt.grid(True)
         plt.title(f'Спектральная плотность мощности усредненного нормального сигнала - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_norm_psd_2_{i}.jpeg"), dpi=300)
@@ -389,7 +485,7 @@ def main():
             file=file_name,
             status="Вейвлет-анализ (норма)..."
         )
-
+        
         # Вейвлет-анализ нормального сигнала
         Spnorm, frequenciesnorm, powernorm = waveletscaleaogram(saecgnorm, fs1)
         rationorm=calculate_band_power_ratio(powernorm,frequenciesnorm,300,2000)
@@ -397,10 +493,10 @@ def main():
         with open(os.path.join(save_dir_txt, f"results_ratio_cwt_power_2_{i}_norm.txt"), 'w') as f:
             f.write(f"Результаты обработки файла {i}\n")
             f.write("="*50 + "\n")
-
+          
             f.write(f"Нормальный сигнал:\n{rationorm}\n\n")
             f.close()
-
+        
         plt.figure(figsize=(15,7))
         plt.subplot(121)
         time_axis = np.arange(powernorm.shape[1]) / fs1  
@@ -414,28 +510,30 @@ def main():
         plt.xlabel('Время (с)')
         plt.ylabel('Частота (Гц)')
         plt.title(f'Вейвлет-спектрограмма (норма) - Файл {i}')
-
+        
         plt.subplot(122)
         plt.semilogy(frequenciesnorm, Spnorm)
         plt.xlabel('Частота (Гц)')
         plt.ylabel('Суммарная мощность')
         plt.title('Интегральная мощность по частотам')
         plt.grid(True)
-
+        
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_norm_wavelet_2_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Обработка патологии..."
         )
-
+        
         # Обработка патологического сигнала
         rpeaks = findpeaks(ypat, fs1)
         saecgpat = signalavergedecg(ypat, fs1, rpeaks)
-
+        
         plt.figure(figsize=(15,7))
         plt.plot(np.linspace(0, len(saecgpat)/fs1, len(saecgpat)), saecgpat)
+        plt.xlabel('Время,с')
+        plt.ylabel('Напряжение,мВ')
         plt.grid(True)
         plt.title(f'Усредненный патологический сигнал - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_pat_2_{i}.jpeg"), dpi=300)
@@ -453,29 +551,31 @@ def main():
             file_result['pat_kurtosis'] = statsmomentspat.get("kurtosis", None)
             file_result['pat_std'] = statsmomentspat.get("std", None)
             file_result['pat_mean'] = statsmomentspat.get("mean", None)
-
+       
 
         pbar.set_postfix(
             file=file_name,
             status="Спектральная плотность мощности (патология)..."
         )
-
+        
 
         total_power_pat,freq_pat, Pxx_pat=periodogram_power(saecgpat,fs1)
         file_result['pat_ratio_psd_power'] = total_power_pat
         bin_centerspat, bin_powerspat=plot_fixed_bin_histogram(freq_pat, Pxx_pat,save_path=os.path.join(save_dir_pic,f"ecg_signal_averged_pat_hist_psd_2_{i}.jpeg"))
         plt.figure(figsize=(15,7))
         plt.plot(freq_pat, Pxx_pat)
+        plt.xlabel('Частота,Гц')
+        plt.ylabel('СПМ,мВ**2/Гц')
         plt.grid(True)
         plt.title(f'Спектральная плотность мощности усредненного патологического сигнала - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_pat_psd_2_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Вейвлет-анализ (патология)..."
         )
-
+        
         # Вейвлет-анализ патологического сигнала
         Sppat, frequenciespat, powerpat = waveletscaleaogram(saecgpat, fs1)
         ratiopat=calculate_band_power_ratio(powerpat,frequenciespat,300,2000)
@@ -483,10 +583,10 @@ def main():
         with open(os.path.join(save_dir_txt, f"results_ratio_cwt_power_2_{i}_pat.txt"), 'w') as f:
             f.write(f"Результаты обработки файла {i}\n")
             f.write("="*50 + "\n")
-
+          
             f.write(f"Нормальный сигнал:\n{ratiopat}\n\n")
             f.close()
-
+        
         plt.figure(figsize=(15,7))
         plt.subplot(121)
         time_axis = np.arange(powerpat.shape[1]) / fs1  
@@ -500,27 +600,27 @@ def main():
         plt.xlabel('Время (с)')
         plt.ylabel('Частота (Гц)')
         plt.title(f'Вейвлет-спектрограмма (патология) - Файл {i}')
-
+        
         plt.subplot(122)
         plt.semilogy(frequenciespat, Sppat)
         plt.xlabel('Частота (Гц)')
         plt.ylabel('Суммарная мощность')
         plt.title('Интегральная мощность по частотам')
         plt.grid(True)
-
+        
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_pat_wavelet_2_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         try:
            parpat = compute_late_potentials_from_avg(saecgpat, fs1)
-
+            
            # Сохраняем результаты
            with open(os.path.join(save_dir_txt, f"results_2_{i}_pat.txt"), 'w') as f:
                 f.write(f"Результаты обработки файла {i}\n")
                 f.write("="*50 + "\n")
                 f.write(f"Патологический сигнал:\n{parpat}\n")
                 f.close()
-
+            
            # Сохраняем параметры в словарь
            if isinstance(parpat, dict):
               file_result['pat_fQRS_ms'] = parpat.get('fQRS_ms', None)
@@ -532,7 +632,7 @@ def main():
                file_result['pat_fQRS_ms'] = parpat[0]
                file_result['pat_RMS40_mkV'] = parpat[1]
                file_result['pat_LAS_ms'] = parpat[2]
-
+            
         except:
             pass
 
@@ -542,10 +642,10 @@ def main():
     # Создаем DataFrame из собранных данных
     df_results = pd.DataFrame(results_data)
 
+    
 
-
-
-
+  
+   
     excel_filename = os.path.join(save_dir_xlsx, "ecg_analysisresults2.xlsx")
     df_results.to_excel(excel_filename, index=False)
 
@@ -600,7 +700,7 @@ def main():
         print(f"\n{'='*50}")
         print(f"Обработка файла {i}")
         print('='*50)
-
+    
         # Формируем пути к файлам
         file_name = f"{i}_2_Not_filtered.edf"
         file_path = f"{base_path}{i}/2_rat/"
@@ -609,7 +709,7 @@ def main():
             file_path, 
             [0, 1, 2, 3, 4, 5]
         )
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Обработка сигнала..."
@@ -619,12 +719,12 @@ def main():
             file_name, 
             file_path
         )
-
+        
         # Применяем винзоризацию
         sig1 = iqr_winsorize(sig1, 5)
         sig1=iircombfilter(sig1,fs1)
-
-
+        
+        
         # Определяем временные метки
         if not anot:
             stabilization_time = 0
@@ -634,7 +734,7 @@ def main():
             stabilization_time = 0
             ishemia_time = next((k for k, v in anot.items() if v == 'Ishemia'), 0)
             reperfusion_time = next((k for k, v in anot.items() if v == 'Reperfusion'), 0)
-
+        
         # Вырезаем участки сигнала
         ynorm = time_slice(
             sig1 - np.mean(sig1),
@@ -642,14 +742,14 @@ def main():
             stabilization_time + 34,
             fs1
         )
-
+        
         ypat = time_slice(
             sig1 - np.mean(sig1),
             ishemia_time,
             ishemia_time + 34,
             fs1
         )
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Графики сигналов..."
@@ -657,29 +757,35 @@ def main():
         # Сохраняем графики исходных сигналов
         plt.figure(figsize=(15,7))
         plt.plot(np.linspace(0, len(ynorm)/fs1, len(ynorm)), ynorm)
+        plt.xlabel('Время,с')
+        plt.ylabel('Напряжение,мВ')
         plt.grid(True)
         plt.title(f'Нормальный сигнал - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_norm_1_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         plt.figure(figsize=(15,7))
         plt.plot(np.linspace(0, len(ypat)/fs1, len(ypat)), ypat)
+        plt.xlabel('Время,с')
+        plt.ylabel('Напряжение,мВ')
         plt.grid(True)
         plt.title(f'Патологический сигнал - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_pat_1_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Усреднение сигналов..."
         )
-
+        
         # Обработка нормального сигнала
         rpeaks = findpeaks(ynorm, fs1)
         saecgnorm = signalavergedecg(ynorm, fs1, rpeaks)
-
+        
         plt.figure(figsize=(15,7))
         plt.plot(np.linspace(0, len(saecgnorm)/fs1, len(saecgnorm)), saecgnorm)
+        plt.xlabel('Время,с')
+        plt.ylabel('Напряжение,мВ')
         plt.grid(True)
         plt.title(f'Усредненный нормальный сигнал - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_norm_1_{i}.jpeg"), dpi=300)
@@ -690,7 +796,7 @@ def main():
             with open(os.path.join(save_dir_txt, f"results_1_{i}_norm.txt"), 'w') as f:
                 f.write(f"Результаты обработки файла {i}\n")
                 f.write("="*50 + "\n")
-
+          
                 f.write(f"Нормальный сигнал:\n{parnorm}\n\n")
                 f.close()
             # Сохраняем параметры в словарь
@@ -706,7 +812,7 @@ def main():
                  file_result['norm_LAS_ms'] = parnorm[2]
         except:
             pass
-
+                
 
 
         pbar.set_postfix(
@@ -720,8 +826,8 @@ def main():
             file_result['norm_kurtosis'] = statsmomentsnorm.get("kurtosis", None)
             file_result['norm_std'] = statsmomentsnorm.get("std", None)
             file_result['norm_mean'] = statsmomentsnorm.get("mean", None)
-
-
+      
+        
         pbar.set_postfix(
             file=file_name,
             status="Спектральная плотность мощности  (норма)..."
@@ -730,6 +836,8 @@ def main():
         file_result['norm_ratio_psd_power'] = total_power_norm
         plt.figure(figsize=(15,7))
         plt.plot(freq_norm, Pxx_norm)
+        plt.xlabel('Частота,Гц')
+        plt.ylabel('СПМ,мВ**2/Гц')
         plt.grid(True)
         plt.title(f'Спектральная плотность мощности усредненного нормального сигнала - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_norm_psd_1_{i}.jpeg"), dpi=300)
@@ -748,10 +856,10 @@ def main():
         with open(os.path.join(save_dir_txt, f"results_ratio_cwt_power_1_{i}_norm.txt"), 'w') as f:
             f.write(f"Результаты обработки файла {i}\n")
             f.write("="*50 + "\n")
-
+          
             f.write(f"Нормальный сигнал:\n{rationorm}\n\n")
             f.close()
-
+        
         plt.figure(figsize=(15,7))
         plt.subplot(121)
         time_axis = np.arange(powernorm.shape[1]) / fs1  
@@ -765,28 +873,30 @@ def main():
         plt.xlabel('Время (с)')
         plt.ylabel('Частота (Гц)')
         plt.title(f'Вейвлет-спектрограмма (норма) - Файл {i}')
-
+        
         plt.subplot(122)
         plt.semilogy(frequenciesnorm, Spnorm)
         plt.xlabel('Частота (Гц)')
         plt.ylabel('Суммарная мощность')
         plt.title('Интегральная мощность по частотам')
         plt.grid(True)
-
+        
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_norm_wavelet_1_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Обработка патологии..."
         )
-
+        
         # Обработка патологического сигнала
         rpeaks= findpeaks(ypat, fs1)
         saecgpat = signalavergedecg(ypat, fs1, rpeaks)
-
+        
         plt.figure(figsize=(15,7))
         plt.plot(np.linspace(0, len(saecgpat)/fs1, len(saecgpat)), saecgpat)
+        plt.xlabel('Время,с')
+        plt.ylabel('Напряжение,мВ')
         plt.grid(True)
         plt.title(f'Усредненный патологический сигнал - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_pat_1_{i}.jpeg"), dpi=300)
@@ -804,7 +914,7 @@ def main():
             file_result['pat_kurtosis'] = statsmomentspat.get("kurtosis", None)
             file_result['pat_std'] = statsmomentspat.get("std", None)
             file_result['pat_mean'] = statsmomentspat.get("mean", None)
-
+        
 
         pbar.set_postfix(
             file=file_name,
@@ -814,17 +924,19 @@ def main():
         file_result['pat_ratio_psd_power'] = total_power_pat
         plt.figure(figsize=(15,7))
         plt.plot(freq_pat, Pxx_pat)
+        plt.xlabel('Частота,Гц')
+        plt.ylabel('СПМ,мВ**2/Гц')
         plt.grid(True)
         plt.title(f'Спектральная плотность мощности усредненного патологического сигнала - Файл {i}')
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_pat_psd_1_{i}.jpeg"), dpi=300)
         plt.close()
         bin_centerspat, bin_powerspat=plot_fixed_bin_histogram(freq_pat, Pxx_pat,save_path=os.path.join(save_dir_pic, f"ecg_signal_averged_pat_hist_psd_1_{i}.jpeg"))
-
+        
         pbar.set_postfix(
             file=file_name,
             status="Вейвлет-анализ (патология)..."
         )
-
+        
         # Вейвлет-анализ патологического сигнала
         Sppat, frequenciespat, powerpat = waveletscaleaogram(saecgpat, fs1)
         ratiopat=calculate_band_power_ratio(powerpat,frequenciespat,300,2000)
@@ -832,10 +944,10 @@ def main():
         with open(os.path.join(save_dir_txt, f"results_ratio_cwt_power_1_{i}_pat.txt"), 'w') as f:
             f.write(f"Результаты обработки файла {i}\n")
             f.write("="*50 + "\n")
-
+          
             f.write(f"Нормальный сигнал:\n{ratiopat}\n\n")
             f.close()
-
+        
         plt.figure(figsize=(15,7))
         plt.subplot(121)
         time_axis = np.arange(powerpat.shape[1]) / fs1  
@@ -849,20 +961,20 @@ def main():
         plt.xlabel('Время (с)')
         plt.ylabel('Частота (Гц)')
         plt.title(f'Вейвлет-спектрограмма (патология) - Файл 1 {i}')
-
+        
         plt.subplot(122)
         plt.semilogy(frequenciespat, Sppat)
         plt.xlabel('Частота (Гц)')
         plt.ylabel('Суммарная мощность')
         plt.title('Интегральная мощность по частотам')
         plt.grid(True)
-
+        
         plt.savefig(os.path.join(save_dir_pic, f"ecg_signal_averged_pat_wavelet_1_{i}.jpeg"), dpi=300)
         plt.close()
-
+        
         try:
            parpat = compute_late_potentials_from_avg(saecgpat, fs1)
-
+            
            # Сохраняем результаты
            with open(os.path.join(save_dir_txt, f"results_1_{i}_pat.txt"), 'w') as f:
                 f.write(f"Результаты обработки файла {i}\n")
@@ -880,7 +992,7 @@ def main():
                file_result['pat_fQRS_ms'] = parpat[0]
                file_result['pat_RMS40_mkV'] = parpat[1]
                file_result['pat_LAS_ms'] = parpat[2]
-
+            
         except:
             pass
 
@@ -895,7 +1007,6 @@ def main():
     df= apply_mannwhitney_to_all(df_results)
     excel_filename = os.path.join(save_dir_xlsx, "mannwhitney1.xlsx")
     df.to_excel(excel_filename, index=False)
-
     #=== ПРОВЕРКА ПЕРЕД ОБУЧЕНИЕМ ===
     print(f"df_results.dtypes:\n{df_results.dtypes}")
     print(f"df_results.isna().sum().sum() = {df_results.isna().sum().sum()} NaN")
@@ -904,27 +1015,29 @@ def main():
     X, y, feature_cols=prepare_rf_data(df_results)
     dictml=train_rf_and_plot_roc(X, y, feature_cols,save_path=os.path.join(save_dir_pic, f"rocauccurve1_{i}.jpeg"))
 
+    
 
-
-
-
+    
+   
     plt.show()
-
-
-
-
+    
+    
+    
+    
 if __name__ == "__main__":
     main()
 
 
 
+    
+    
 
 
 
+# %%
 
 
-# In[ ]:
-
+# %%
 
 
 
