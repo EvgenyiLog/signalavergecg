@@ -1,8 +1,7 @@
 import numpy as np
 
 def find_max_frequency_time(power: np.ndarray, frequencies: np.ndarray, 
-                           time_axis: np.ndarray,
-                           band_min: float, band_max: float) -> tuple:
+                           band_min: float, band_max: float,time_axis: np.ndarray=None,fs:float=6250) -> tuple:
     """Находит частоту и время максимума мощности в заданной полосе частот
     
     Args:
@@ -17,7 +16,8 @@ def find_max_frequency_time(power: np.ndarray, frequencies: np.ndarray,
     """
     # Маска по частотам
     mask = (frequencies >= band_min) & (frequencies <= band_max)
-    
+    if time_axis is None:
+        time_axis=np.linspace(0,power.shape[1]/fs,power.shape[1]) 
     # Проверка, что есть частоты в маске
     if not np.any(mask):
         return np.nan, np.nan

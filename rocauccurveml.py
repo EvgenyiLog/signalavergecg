@@ -233,3 +233,121 @@ def train_rf_and_plot_roc(
     }
     
     return results
+
+
+
+def compute_and_plot_individual_roc_auc(X: pd.DataFrame, y: pd.Series, feature_names: list,
+                                         save_plots_dir: str = None) -> pd.DataFrame:
+    """
+    Вычисляет ROC AUC для каждого признака, строит отдельные графики и сохраняет параметры в DataFrame.
+    
+    Parameters:
+    -----------
+    X : pd.DataFrame
+        Матрица признаков
+    y : pd.Series
+        Целевая переменная (0 - норма, 1 - патология)
+    feature_names : list
+        Список названий признаков
+    save_plots_dir : str, optional
+        Директория для сохранения графиков (если None - графики не сохраняются)
+    
+    Returns:
+    --------
+    pd.DataFrame
+        DataFrame с параметрами ROC AUC для каждого признака
+    """
+    results_list = []
+    
+    for i, feature in enumerate(feature_names):
+        # Убираем NaN
+        mask = X[feature].notna()
+        if mask.sum() == 0:
+            continue
+            
+        y_col = y[mask]
+        X_col = X[feature][mask].values
+        
+        # Проверяем наличие обоих классов
+        if len(np.unique(y_col)) < 2:
+            print(f"⚠️ Признак '{feature}': только один класс, пропускаем")
+            results_list.append({
+                'feature': feature,
+                'roc_auc': np.nan,
+                'optimal_threshold': np.nan,
+                'sensitivity': np.nan,
+                'specificity': np.nan,
+                'youden_index': np.nan
+            })
+            continue
+        
+        # Вычисляем ROC кривую
+        fpr, tpr, thresholds = roc_curve(y_col, X_col)
+        roc_auc = auc(fpr, tpr)
+        
+        # Индекс Юдена для оптимального порога
+        youden_idx = np.argmax(tpr - fpr)
+        optimal_threshold = thresholds[youden_idx]
+        sensitivity = tpr[youden_idx]
+        specificity = 1 - fpr[youden_idx]
+        youden_index = sensitivity + specificity - 1
+        
+        # Сохраняем параметры
+        results_list.append({
+            'feature': feature,
+            'roc_auc': roc_auc,
+            'optimal_threshold': optimal_threshold,
+            'sensitivity': sensitivity,
+            'specificity': specificity,
+            'youden_index': youden_index
+        })
+        
+        # Строим график для каждого признака
+        plt.figure(figsize=(15, 7))
+        
+        # ROC кривая
+        plt.plot(fpr, tpr, color='darkorange', lw=2, 
+                label=f'ROC curve (AUC = {roc_auc:.3f})')
+        plt.plot([0, 1], [0, 1], color='navy', lw=1, linestyle='--', 
+                label='Random classifier')
+        
+        # Отмечаем оптимальную точку
+        plt.scatter(fpr[youden_idx], tpr[youden_idx], color='red', s=100, zorder=5,
+                   label=f'Optimal threshold = {optimal_threshold:.3f}\n'
+                         f'Sensitivity = {sensitivity:.3f}, Specificity = {specificity:.3f}')
+        
+        plt.xlabel('False Positive Rate (1 - Specificity)', fontsize=11)
+        plt.ylabel('True Positive Rate (Sensitivity)', fontsize=11)
+        plt.title(f'ROC Curve for {feature}', fontsize=13, fontweight='bold')
+        plt.legend(loc='lower right', fontsize=9)
+        plt.grid(alpha=0.3)
+        plt.tight_layout()
+        
+        # Сохраняем или показываем
+        if save_plots_dir:
+            import os
+            os.makedirs(save_plots_dir, exist_ok=True)
+            safe_name = feature.replace('/', '_').replace('\\', '_').replace(' ', '_')
+            plt.savefig(f'{save_plots_dir}/roc_{safe_name}.png', dpi=300, bbox_inches='tight')
+            plt.close()
+        else:
+            plt.show()
+    
+    # Создаем DataFrame с результатами
+    df_results = pd.DataFrame(results_list)
+    df_results = df_results.sort_values('roc_auc', ascending=False).reset_index(drop=True)
+    
+    # Выводим статистику
+    print("\n" + "="*60)
+    print("РЕЗУЛЬТАТЫ ROC AUC ДЛЯ КАЖДОГО ПРИЗНАКА")
+    print("="*60)
+    print(df_results.to_string(index=False))
+    print("\n" + "="*60)
+    print(f"Лучший признак: {df_results.iloc[0]['feature']} (AUC = {df_results.iloc[0]['roc_auc']:.4f})")
+    print(f"Худший признак: {df_results.iloc[-1]['feature']} (AUC = {df_results.iloc[-1]['roc_auc']:.4f})")
+    print(f"Средний AUC: {df_results['roc_auc'].mean():.4f} ± {df_results['roc_auc'].std():.4f}")
+    print("="*60)
+    
+    return df_results
+
+
