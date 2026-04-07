@@ -2,6 +2,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from typing import Tuple, Optional, Literal
+from compute_late_potentials_from_avg import bandpass_saecg
 import matplotlib.axes
 
 
@@ -17,7 +18,8 @@ def plot_histogram(
     color: str = '#2E86AB',
     alpha: float = 0.6,
     show_grid: bool = True,
-    save_path: Optional[str] = None
+    save_path: Optional[str] = None,
+    fs:int=6250
 ) -> Tuple[ np.ndarray, np.ndarray]:
     """
     Seaborn histogram with KDE overlay.
@@ -62,7 +64,7 @@ def plot_histogram(
         Histogram bar heights (length = bins).
     """
     print(f"Data shape: {data.shape}, range: [{np.min(data):.4g}, {np.max(data):.4g}]")
-    
+    data=bandpass_saecg(data,fs)
     # Настройка стиля seaborn
     sns.set_style("whitegrid")
     fig, ax = plt.subplots(figsize=figsize)

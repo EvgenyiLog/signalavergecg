@@ -1,9 +1,10 @@
 from typing import List, Union, Dict
 import numpy as np
 from scipy import stats
+from compute_late_potentials_from_avg import bandpass_saecg
 
 def calculate_skew_kurtosis(
-    data: Union[List[float], np.ndarray]
+    data: Union[List[float], np.ndarray],fs:int=6250
 ) -> Dict[str, float]:
     """
     Рассчитывает асимметрию (skewness) и эксцесс (kurtosis) для набора данных.
@@ -44,7 +45,8 @@ def calculate_skew_kurtosis(
     
     if len(arr) < 3:
         raise ValueError("Для расчета статистик требуется минимум 3 элемента данных.")
-
+    
+    arr=bandpass_saecg(arr,fs)
     # Расчет статистик с помощью scipy
     skew_val = stats.skew(arr)
     kurt_val = stats.kurtosis(arr, fisher=True) # fisher=True возвращает избыточный эксцесс

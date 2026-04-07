@@ -2,12 +2,15 @@ from pyentrp import entropy as ent
 import numpy as np
 from typing import List, Union, Tuple
 
+from compute_late_potentials_from_avg import bandpass_saecg
+
 def calculate_entropies(
     data: Union[List[float], np.ndarray],
     sample_dim: int = 2,
     sample_r_factor: float = 0.2,
     perm_order: int = 3,
-    perm_delay: int = 1
+    perm_delay: int = 1,
+    fs:int=6250
 ) -> Tuple[float, float, float]:
     """
     Вычисляет три типа энтропии для временного ряда: Шеннона, семпл-энтропию и permutation-энтропию.
@@ -48,7 +51,7 @@ def calculate_entropies(
     if not isinstance(data, np.ndarray):
         data = np.array(data)
     
-    
+    data=bandpass_saecg(data,fs)
     shannon_entropy = ent.shannon_entropy(data)
     
     # 2. Семпл-энтропия
