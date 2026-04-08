@@ -72,7 +72,7 @@ def iircombfilter(
     )
 
     # 3. Применение фильтра
-    # sosfiltfilt применяет фильтр дважды (вперед и назад), что устраняет фазовые искажения.
+    # filtfilt применяет фильтр дважды (вперед и назад), что устраняет фазовые искажения.
     filtered_signal = filtfilt(b,a, signal)
 
     return filtered_signal
